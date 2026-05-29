@@ -1,0 +1,61 @@
+# The Pass Registry
+
+A live, multi-user "pass system." Every member mints their **own** currency of passes
+(Alyssa mints Alyssa passes, Raj mints Raj passes). You can hand out unlimited amounts of
+your own passes, but you can only pass on **someone else's** passes if you actually hold
+them. Every exchange carries a required comment, members can **request** passes from each
+other, and any member's pass counts are public.
+
+The rules can't be cheated from the browser: all balance logic runs inside the database as
+atomic transactions, behind row-level security.
+
+- **Frontend:** Vite + React (a plain static site)
+- **Backend:** Supabase (Postgres database + built-in authentication)
+- **Cost:** $0 — both Supabase and the hosts below have free tiers with no credit card required.
+
+---
+
+## How the pass logic works
+
+- A "pass type" is simply a user. `Alyssa passes` = passes issued by Alyssa.
+- **Minting:** when you give away passes that *you* issued, the supply is unlimited and nothing is deducted from you.
+- **Trading:** when you give away *someone else's* passes, you must already hold at least that many — they are deducted from you and added to the recipient.
+- A single SQL function does the check, the deduction, the credit, and the ledger entry in **one transaction**, so passes can never be double-spent even if two requests arrive at once.
+
+---
+
+## Deploy it for free (about 15 minutes)
+
+### 1. Create the database (Supabase)
+1. Go to https://supabase.com, sign in with GitHub, and click **New project**. Pick any name and a database password. Wait ~2 minutes for it to provision.
+2. In the left sidebar open **SQL Editor → New query**. Open `supabase/schema.sql` from this project, paste the **entire** file in, and click **Run**. You should see "Success."
+3. (For easy testing) Go to **Authentication → Sign In / Providers → Email** and turn **off** "Confirm email." This lets you sign up and log in instantly without checking an inbox. (Leave it on if you want real email verification.)
+4. Get your keys: **Project Settings → Data API** gives you the **Project URL**; **Project Settings → API Keys** gives you the **anon public** key. Keep these for step 3.
+
+### 2. Run it locally first (optional but recommended)
+```bash
+npm install
+cp .env.example .env        # then edit .env with your URL + anon key
+npm run dev                 # open the printed http://localhost:5173
+```
+Sign up as a couple of different users (different emails) in separate browser windows and try giving/requesting passes.
+
+### 3. Put it on the internet (Vercel)
+1. Push this folder to a new GitHub repo.
+2. Go to https://vercel.com, sign in with GitHub, **Add New → Project**, and import the repo.
+3. Vercel auto-detects Vite. Before deploying, open **Environment Variables** and add:
+   - `VITE_SUPABASE_URL` = your Project URL
+   - `VITE_SUPABASE_ANON_KEY` = your anon public key
+4. Click **Deploy**. You'll get a live `https://your-app.vercel.app` URL.
+
+That's it — share the URL and people can sign up.
+
+> Prefer a different host? Netlify, Cloudflare Pages, and GitHub Pages all work the same way:
+> build command `npm run build`, output directory `dist`, and set the same two env vars.
+
+---
+
+## Notes & next ideas
+- The `anon` key is meant to be public — it only allows what row-level security permits, which is reading public data and calling the four guarded functions.
+- Want passes to expire, or a max supply per minter? Add the rule inside `transfer_passes` in `schema.sql`.
+- Want live updates without refreshing? Supabase has realtime subscriptions you can layer on later.

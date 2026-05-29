@@ -1,0 +1,49 @@
+export default function History({ transactions, nameOf, me }) {
+  function when(ts) {
+    const d = new Date(ts)
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
+      ' · ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+  }
+
+  return (
+    <div className="card">
+      <div className="spread">
+        <h2>The Ledger</h2>
+        <span className="muted mono" style={{ fontSize: '0.78rem' }}>{transactions.length} entries</span>
+      </div>
+      <p className="muted" style={{ marginTop: 0, fontSize: '0.88rem' }}>
+        Every exchange ever recorded, newest first.
+      </p>
+
+      {transactions.length === 0 ? (
+        <p className="muted" style={{ margin: 0 }}>No exchanges yet.</p>
+      ) : (
+        <div className="stack">
+          {transactions.map((t) => {
+            const involvesMe = t.sender_id === me.id || t.recipient_id === me.id
+            return (
+              <div className="row" key={t.id}>
+                <div className="left">
+                  <span className="uname" style={{ fontSize: '1rem' }}>
+                    {nameOf(t.sender_id)} → {nameOf(t.recipient_id)}
+                  </span>
+                  <span className="meta">
+                    <span className="mono">{t.amount}</span> <em>{nameOf(t.issuer_id)}</em>{' '}
+                    {Number(t.amount) === 1 ? 'pass' : 'passes'} · “{t.comment}” · {when(t.created_at)}
+                  </span>
+                </div>
+                {t.sender_id === me.id ? (
+                  <span className="tag out">sent</span>
+                ) : t.recipient_id === me.id ? (
+                  <span className="tag in">received</span>
+                ) : (
+                  <span className="tag">—</span>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
